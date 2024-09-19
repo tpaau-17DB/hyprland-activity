@@ -9,9 +9,9 @@ from utils import get_usetime_path, active_win, updatedb, load_file, print_usage
 
 DATA_DIR = '~/.local/share/apptime/'
 
-def start():
+def start(sleep_time=5, save_threshold=60):
     """
-    The window monitoring loop
+    The program loop
     """
     # Ensure that correct path exists
     l.log_deb(f"Ensuring that the directory '{DATA_DIR}' exists")
@@ -21,11 +21,13 @@ def start():
     l.log_inf("Started monitoring app usage.")
     classes_time = {}
     sleep_time = 5
-    timer = 60 / sleep_time
+    timer = save_threshold / sleep_time
+
     while True:
         win = active_win()
         if win is None:
             time.sleep(sleep_time)
+            l.log_deb("No active window.")
             continue
         l.log_deb(f"Captured active window: '{win}'")
         classes_time[win] = classes_time.get(win, 0) + sleep_time
@@ -33,13 +35,13 @@ def start():
         if timer <= 0:
             updatedb(classes_time)
             classes_time = {}
-            timer = 60 / sleep_time
+            timer = save_threshold / sleep_time
         time.sleep(sleep_time)
 
 
 def main():
     """
-    The main function
+    The main function that mostly does argparsing and arginterpreting
     """
     date_pattern = r'^\d\d-\d\d$'
 
@@ -56,7 +58,7 @@ def main():
     if args.command == 'show':
         data = None
 
-        if(args.time is None):
+        if args.time is None:
             l.log_err("You must specify the file to show. Possible choices: today, yesterday, file date in DD-MM format.")
             sys.exit(1)
 
@@ -67,7 +69,7 @@ def main():
         elif re.match(date_pattern, args.time):
             data = load_file(p(f"{DATA_DIR}usetime-{os.getlogin()}-{args.time}").expanduser())
         else:
-            l.log_err("Value must be in DD-MM format.")
+            l.log_err(f"No such file: {args.time}")
 
         if data is not None:
             print("Usage data:")
